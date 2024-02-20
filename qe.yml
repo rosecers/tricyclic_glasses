@@ -1,0 +1,5 @@
+name: qe
+channels:
+  - conda-forge
+dependencies:
+  - qe

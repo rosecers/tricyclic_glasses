@@ -18,5 +18,5 @@ pip install signac signac-flow ase
 # modify this line to run your desired Python script
 mkdir workspace
 export ESPRESSO_PSEUDO=$PWD/espresso/pseudo
-mv 7623db09eccee41830e4fab767e79c26 workspace/.
-python3 project.py run -n 1 -j 7623db09eccee41830e4fab767e79c26
+mv fde059f27a4894b9944d217a84fec08f workspace/.
+python3 project.py run -n 1 -j fde059f27a4894b9944d217a84fec08f

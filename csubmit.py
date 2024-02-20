@@ -11,10 +11,6 @@ if "-i" in argv:
 else:
     interactive = ""
 
-if "-l" in argv:
-    is_long = True
-    argv = [a for a in argv if a != "-l"]
-
 for s in argv:
     job = signac.get_project().open_job(id=s)
 
@@ -22,10 +18,7 @@ for s in argv:
         print(f"Skipping. Job log for {job} exists")
     else:
         if not os.path.exists(f"templates/condor-{job}.sh"):
-            if job.document.NAtoms > 30 or is_long:
-                template = "templates/condor-long.sh"
-            else:
-                template = "templates/condor.sh"
+            template = "templates/condor.sh"
 
             shutil.copy(template, f"templates/condor-{job}.sh")
             os.system(
