@@ -4,6 +4,9 @@ from scipy.spatial.transform import Rotation as R
 from ase.calculators.espresso import Espresso
 import csv
 import signac
+import os
+import shutil
+import sys
 
 #espresso_profile = EspressoProfile(["mpirun", "-np", "16", "pw.x"])
 pseudopotentials = {'C': 'C.pbe-tm-new-gipaw-dc.UPF',
@@ -83,12 +86,16 @@ c = 2*a
 energies = np.zeros([a,b,c]) + 9999
 
 # cool function to rotate paddles
-def rotate_paddle(pos,n,theta,center):
+def rotate_paddle(paddle,n,theta,center):
 	# center = pos.mean(axis=0)
+	paddle = paddle.copy()
+	pos = paddle.get_positions()
 	pos = pos - center
 	r = R.from_quat([n[0]*np.sin(theta/2),n[1]*np.sin(theta/2),n[2]*np.sin(theta/2),np.cos(theta/2)])
 	rot_pos = r.apply(pos)
-	return rot_pos + center
+	rot_pos = rot_pos + center
+	paddle.set_positions(rot_pos)
+	return paddle
 
 def output_energies():
 	with open('energies.csv','w',newline='') as csvfile:
@@ -100,19 +107,19 @@ def output_energies():
 					spamwriter.writerow([(180/np.pi)*i*np.pi/a,(180/np.pi)*j*2*np.pi/b,(180/np.pi)*k*2*np.pi/c,energies[i,j,k]])
 
 def init():
-    for i in range(a):
-            rot_A = rotate_paddle(paddle_A.get_positions(),n_A,i* np.pi/a,center_A)
-            
-            for j in range(b):
-                    rot_a1 = rotate_paddle(paddle_a1.get_positions(),n_a1,j*2*np.pi/b,center_a1)
-                    
-                    for k in range(c):
-                            rot_a2 = rotate_paddle(paddle_a2.get_positions(),n_a2,k*2*np.pi/c,center_a2)
+	for i in range(a):
+		rot_A = rotate_paddle(paddle_A,n_A,i* np.pi/a,center_A)
 
-                            sp = {"A": i, "a1": j, "a2": k}
-                            job = signac.get_project().open_job(sp).init()
-                            whole = benzene + paddle_A + paddle_a1 + paddle_a2
-                            ase.io.write(job.fn('configuration.xyz'), whole)
+		for j in range(b):
+			rot_a1 = rotate_paddle(paddle_a1,n_a1,j*2*np.pi/b,center_a1)
+
+			for k in range(c):
+				rot_a2 = rotate_paddle(paddle_a2,n_a2,k*2*np.pi/c,center_a2)
+
+				sp = {"A": i, "a1": j, "a2": k}
+				job = signac.get_project().open_job(sp).init()
+				whole = benzene + rot_A + rot_a1 + rot_a2
+				ase.io.write(job.fn('A_'+str(i)+'_a1_'+str(j)+'_a2_'+str(k)+'.xyz'), whole)
 
 
 def run_calculation(job):
@@ -120,6 +127,42 @@ def run_calculation(job):
     whole.calc = calc
     # whole.write('configurations/A_'+str(i)+',a1_'+str(j)+',a2_'+str(k)+'.xyz')
     job.document['energy'] = whole.get_potential_energy()
+
+def submit_calculations():
+	for i in range(a):
+		for j in range(b):
+			for k in range(c):
+				sp = {"A": i, "a1": j, "a2": k}
+				job = signac.get_project().open_job(sp).init()
+				submit(False,job)
+
+def submit(interact,job):
+	if interact:
+	    interactive = " --interactive"
+	    #argv = [a for a in argv if a != "-i"]
+
+	else:
+	    interactive = ""
+
+	if os.path.exists(f"{job}.job.log"):
+		print(f"Skipping. Job log for {job} exists")
+	else:
+		if not os.path.exists(f"templates/condor-{job}.sh"):
+			template = "templates/condor.sh"
+
+			shutil.copy(template, f"templates/condor-{job}.sh")
+			os.system(
+				f'sed -i "s/7623db09eccee41830e4fab767e79c26/{job}/g" templates/condor-{job}.sh'
+			)
+		if not os.path.exists(f"submission_scripts/submit-{job}.sh"):
+			shutil.copy(
+			"submission_scripts/submit.sh",
+			f"submission_scripts/submit-{job}.sh",
+			)
+			os.system(
+				f'sed -i "s/7623db09eccee41830e4fab767e79c26/{job}/g" submission_scripts/submit-{job}.sh'
+			)
+		os.system(f"condor_submit templates/condor-{job}.sh {interactive}")
 
 if __name__ == "__main__":
     init()
