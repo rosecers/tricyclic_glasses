@@ -77,9 +77,9 @@ center_A = pos[0]
 center_a1 = pos[11]
 center_a2 = pos[12]
 
-a = 1
-b = a
-c = a
+a = 5
+b = 2*a
+c = 2*a
 # rot_A = rotate_paddle(paddle_A.get_positions(),n_A,0,center_A)
 # rot_a1 = rotate_paddle(paddle_a1.get_positions(),n_a1,0,center_a1)
 # rot_a2 = rotate_paddle(paddle_a2.get_positions(),n_a2,0,center_a2)
@@ -167,6 +167,16 @@ def submit(interact,job):
 				f'sed -i "s/7623db09eccee41830e4fab767e79c26/{job}/g" submission_scripts/submit-{job}.sh'
 			)
 		os.system(f"condor_submit templates/condor-{job}.sh {interactive}")
+
+def transfer_shit():
+	from project import transfer
+	print('transfering data...')
+	for i in range(a):
+		for j in range(b):
+			for k in range(c):
+				sp = {"A": i, "a1": j, "a2": k}
+				job = signac.get_project().open_job(sp).init()
+				transfer(job)
 
 if __name__ == "__main__":
     init()
