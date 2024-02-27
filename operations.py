@@ -37,7 +37,7 @@ input_data = {
 		'diagonalization': 'cg'},
 	}
 calc = Espresso(pseudopotentials=pseudopotentials,
-	pseudo_dir='pseudo',
+	#pseudo_dir='pseudo',
 	input_data = input_data)
 
 # read file.in
@@ -119,14 +119,18 @@ def init():
 				sp = {"A": i, "a1": j, "a2": k}
 				job = signac.get_project().open_job(sp).init()
 				whole = benzene + rot_A + rot_a1 + rot_a2
-				ase.io.write(job.fn('A_'+str(i)+'_a1_'+str(j)+'_a2_'+str(k)+'.xyz'), whole)
+				#ase.io.write(job.fn('A_'+str(i)+'_a1_'+str(j)+'_a2_'+str(k)+'.xyz'), whole)
+				ase.io.write(job.fn('configuration.xyz'),whole)
 
 
 def run_calculation(job):
-    whole = ase.io.read(job.fn('configuration.xyz'))
-    whole.calc = calc
-    # whole.write('configurations/A_'+str(i)+',a1_'+str(j)+',a2_'+str(k)+'.xyz')
-    job.document['energy'] = whole.get_potential_energy()
+	print('run_calculation')
+	whole = ase.io.read(job.fn('configuration.xyz'))
+	#whole = ase.io.read(job.fn('A_'+str(job.sp.A)+'_a1_'+str(job.sp.a1)+'_a2_'+str(job.sp.a2)+'.xyz'))
+	#whole = ase.io.read(job.fn('A_0_a1_0_a2_0.xyz'))
+	whole.calc = calc
+	# whole.write('configurations/A_'+str(i)+',a1_'+str(j)+',a2_'+str(k)+'.xyz')
+	job.document['energy'] = whole.get_potential_energy()
 
 def submit_calculations():
 	for i in range(a):
@@ -138,11 +142,11 @@ def submit_calculations():
 
 def submit(interact,job):
 	if interact:
-	    interactive = " --interactive"
-	    #argv = [a for a in argv if a != "-i"]
+		interactive = " --interactive"
+		#argv = [a for a in argv if a != "-i"]
 
 	else:
-	    interactive = ""
+		interactive = ""
 
 	if os.path.exists(f"{job}.job.log"):
 		print(f"Skipping. Job log for {job} exists")
@@ -163,6 +167,16 @@ def submit(interact,job):
 				f'sed -i "s/7623db09eccee41830e4fab767e79c26/{job}/g" submission_scripts/submit-{job}.sh'
 			)
 		os.system(f"condor_submit templates/condor-{job}.sh {interactive}")
+
+def transfer_shit():
+	from project import transfer
+	print('transfering data...')
+	for i in range(a):
+		for j in range(b):
+			for k in range(c):
+				sp = {"A": i, "a1": j, "a2": k}
+				job = signac.get_project().open_job(sp).init()
+				transfer(job)
 
 if __name__ == "__main__":
     init()
