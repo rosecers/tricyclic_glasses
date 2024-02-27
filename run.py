@@ -3,4 +3,4 @@ import operations
 #from operations import submit_calculations
 
 operations.init()
-operations.submit_calculations()
+#operations.submit_calculations()
